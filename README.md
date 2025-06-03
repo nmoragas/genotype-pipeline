@@ -81,7 +81,7 @@ The table below summarizes the main files and directories in this repository, al
 
 
 
-## 2 - Prerequisites <a name = "prere"></a>
+## 🛠️ 2 - Prerequisites <a name = "prere"></a>
 ---
 To successfully run the pipeline, ensure the following software and input formats are available:
 This workflow is currently designed to run in high-performance computing (HPC) environments using `SLURM` job scheduling with `Bash scripts` (#!/bin/bash) and `RStudio`.
@@ -141,7 +141,7 @@ This repository is organized into modular steps that reflect a standard genotype
 
 
 
-## 4 - Authors <a name = "authors"></a>
+## ✍️ 4 - Authors <a name = "authors"></a>
 ---
 
 This pipeline was primarily developed and implemented by:
