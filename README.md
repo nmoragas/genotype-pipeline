@@ -14,6 +14,7 @@ Pipeline for genotype data processing: quality control, imputation preparation, 
 
 
 ## 0 - Overview <a name = "over"></a>
+---
 
 This repository contains scripts and resources for a complete pipeline to process genotyping data in PLINK format. 
 It includes quality control (QC) steps, imputation preparation, post-imputation filtering, and polygenic risk score (PRS) calculation.
@@ -70,6 +71,7 @@ Final steps include downstream analyses on imputed genotype data.
 
 
 ## ⚙️ 1 - Respository structure <a name = "rep_stru"></a>
+---
 
 The table below summarizes the main files and directories in this repository, along with a brief description of their contents.
 |File  |Description            |
@@ -80,6 +82,7 @@ The table below summarizes the main files and directories in this repository, al
 
 
 ## 2 - Prerequisites <a name = "prere"></a>
+---
 To successfully run the pipeline, ensure the following software and input formats are available:
 This workflow is currently designed to run in high-performance computing (HPC) environments using `SLURM` job scheduling with `Bash scripts` (#!/bin/bash) and `RStudio`.
 
@@ -96,6 +99,7 @@ The table below provides a summary of the main tools used in this repository, al
 
 
 ## 🚀 3 - Workflow <a name = "workflow"></a>
+---
 
 This repository is organized into modular steps that reflect a standard genotype data processing pipeline, from raw data to downstream analyses like PRS. Below is the step-by-step workflow:
 
@@ -138,6 +142,8 @@ This repository is organized into modular steps that reflect a standard genotype
 
 
 ## 4 - Authors <a name = "authors"></a>
+---
+
 This pipeline was primarily developed and implemented by:
 
 Núria Moragas, PhD – [@nmoragas](https://github.com/nmoragas)
