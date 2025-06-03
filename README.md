@@ -146,6 +146,17 @@ This repository is organized into modular steps that reflect a standard genotype
             d. Decompression: Unzip and organize imputed VCF files for analysis.
 
 
+### 🔹  4_analysis/ – Post-Imputation Analysis
+
+[scripts/4_analysis](scripts/4_analysis)
+
+- `4_analysis`:
+
+            - a) Sample/SNP extraction: Select specific subsets of individuals or variants.
+            - b) PCA for batch effects: Run PCA to detect technical artifacts or batch effects.
+            - c) PRS calculation: Compute Polygenic Risk Scores (PRS) using public or custom scoring files.
+
+
 
 ## ✍️ 4 - Authors <a name = "authors"></a>
 ---
