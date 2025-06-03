@@ -109,7 +109,7 @@ This repository is organized into modular steps that reflect a standard genotype
 
 ### 🔹 1_QC – Initial Quality Control.
 
-[scripts/1_Metagenomics_pipeline](scripts/1_Metagenomics_pipeline)
+[scripts/1_QC](scripts/1_QC)
 
 - `1_QC`:
 
@@ -124,7 +124,9 @@ This repository is organized into modular steps that reflect a standard genotype
 
 ### 🔹 2_data_preparation/ - Data Preparation for Imputation
 
-[scripts/2_statistical_analysis](scripts/2_statistical_analysis)
+[scripts/2_data_preparation](scripts/2_data_preparation)
+
+- `2_data_preparation`:
 
             a. SNP filtering and allele checks: Remove SNPs with strand issues or inconsistent annotations.
             b. LiftOver (optional): Convert coordinates to match imputation server genome build if necessary (e.g., GRCh37 to GRCh38).
@@ -133,6 +135,10 @@ This repository is organized into modular steps that reflect a standard genotype
             e. Compression and indexing: Create sorted and bgzipped .vcf.gz files with index for server upload.
 
 ### 🔹 3_imputation/ – Imputation via TOPMed
+
+[scripts/3_imputation](scripts/3_imputation)
+
+- `3_imputation`:
 
             a. Prepare files for upload: Ensure data follows imputation server specifications.
             b. Upload & launch imputation: Submit data to the imputation server (e.g., TOPMed).
