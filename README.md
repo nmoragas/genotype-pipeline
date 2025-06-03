@@ -20,55 +20,28 @@ This repository contains scripts and resources for a complete pipeline to proces
 It includes quality control (QC) steps, imputation preparation, post-imputation filtering, and polygenic risk score (PRS) calculation.
 
 ### 🔹  1_QC/ – Genotype Quality Control
-This module conducts a comprehensive quality control of raw genotype data using PLINK and R, ensuring the reliability of the dataset prior to downstream analyses. 
-The process begins with the removal of SNPs that exhibit high missing call rates (commonly above 5%), as well as samples with excessive levels of missing genotype data.
-
-Next, samples are assessed for abnormal heterozygosity, which can be indicative of contamination or low DNA quality. Those that fall outside the expected range are excluded. 
-The module also verifies sex concordance by comparing genetically inferred sex with reported sex, removing any mismatched individuals to maintain consistency.
-
-To avoid confounding due to non-independence between samples, related individuals or duplicates are identified using identity-by-descent (IBD) metrics, with one individual from each related pair removed. 
-SNPs that significantly deviate from Hardy-Weinberg Equilibrium (typically evaluated in control samples) are also filtered out, as such deviations may signal genotyping errors or population structure artifacts.
-
-Population stratification is assessed through Principal Component Analysis (PCA), using Ancestry Informative Markers (AIMS) to identify major axes of genetic variation. 
-Based on their principal component scores, individuals are then classified into broad ancestry groups, including European, Latino, Asian, and African, allowing for downstream analyses to appropriately account for population structure.
+This module applies comprehensive QC to raw genotype data using PLINK and R. It filters SNPs and samples with high missingness, detects heterozygosity outliers, and ensures sex concordance. Related individuals are identified and one from each pair is removed. SNPs failing Hardy-Weinberg Equilibrium are excluded. Finally, PCA using Ancestry Informative Markers (AIMS) is used to detect population stratification and classify individuals into ancestry groups (e.g., European, Latino, Asian, African) for appropriate downstream analysis.
 
 
 
 ### 🔹  2_data_preparation/ – Imputation Preparation
-This stage focuses on preparing high-quality, filtered genotype data for imputation by ensuring compatibility with reference panels and imputation servers. 
-The process begins with a final round of SNP filtering to eliminate variants with strand ambiguities, mismatches in allele annotation, or other inconsistencies that could affect imputation accuracy.
-
-If the reference genome build used in the dataset differs from that required by the imputation server (for example, GRCh37 vs. GRCh38), a coordinate conversion step (LiftOver) is applied to align the dataset accordingly.
-
-Next, allele matching is performed using tools such as the Wellcome Trust’s Wrayner check utilities. 
-These tools compare the dataset against the imputation reference panel and generate a correction script (Run-plink.sh) to standardize SNP orientation, alleles, and positions.
-
-Following correction, the dataset is converted from PLINK binary format to Variant Call Format (VCF), which is the standard input format required by most imputation servers. 
-Finally, the VCF files are sorted, compressed using bgzip, and indexed with tabix to generate .vcf.gz and accompanying index files, ready for upload to the imputation platform.
+This stage ensures that genotype data is compatible with imputation servers and reference panels. It includes final SNP filtering to remove ambiguous variants, optional coordinate conversion (LiftOver) to match genome builds, and allele matching using tools like Wrayner. The cleaned data is then converted to VCF format, compressed, and indexed (.vcf.gz + .tbi) for imputation.
 
 
 
 ### 🔹  3_imputation/ – Imputation via TOPMed
-This step involves performing genotype imputation using the TOPMed Imputation Server, a widely used platform that infers missing genotypes based on a large, diverse reference panel. 
-The process enhances genomic coverage and is essential for downstream analyses like GWAS or polygenic risk scoring.
+This step uses the TOPMed Imputation Server to infer missing genotypes, increasing genomic coverage for downstream analyses like GWAS or PRS.
 
-The first task is to prepare the dataset according to the imputation server’s formatting requirements, ensuring all input files (e.g., .vcf.gz, .tbi) are properly structured, compressed, and indexed.
-
-Once the data is validated, it is uploaded to the TOPMed Imputation Server. 
-The imputation job is configured through the server’s web interface, where parameters such as population reference panel and phasing options are specified.
-
-After imputation is completed, the resulting files—typically VCFs containing imputed genotype probabilities—are downloaded. 
-These files are then decompressed and organized for downstream analysis, such as quality assessment or variant filtering.
+Data must first be prepared in the required format (compressed and indexed VCFs). After uploading to the server and configuring imputation parameters, the resulting imputed VCF files are downloaded, decompressed, and organized for further analysis.
 
 
 
 ### 🔹  4_analysis/ – Post-Imputation Analysis
-Final steps include downstream analyses on imputed genotype data.
+This final stage focuses on post-imputation analyses to extract meaningful insights from the genotype data.
 
-- a) Sample/SNP extraction: Select specific subsets of individuals or variants.
-- b) PCA for batch effects: Run PCA to detect technical artifacts or batch effects.
-- c) PRS calculation: Compute Polygenic Risk Scores (PRS) using public or custom scoring files.
-
+             - Sample and SNP extraction. Subset the imputed dataset by selecting specific individuals or variants of interest for targeted analyses.
+             - Principal Component Analysis (PCA). Perform PCA on the imputed data to identify potential batch effects, population substructure, or other technical artifacts.
+             - Polygenic Risk Score (PRS) calculation. Compute PRS using publicly available or custom scoring files, enabling genetic risk estimation for complex traits or diseases.
 
 ## ⚙️ 1 - Respository structure <a name = "rep_stru"></a>
 ---
