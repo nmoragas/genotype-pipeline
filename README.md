@@ -4,7 +4,7 @@ Pipeline for genotype data processing: quality control, imputation preparation, 
 </p>
 
 ---
-## Table of contents
+## 🔹 Table of contents
 
 - [0 - Overview](#over) - Overview of the project's purpose and goals
 - [1 - Respository structure](#rep_stru) - Instructions on how to begin with this project
@@ -69,7 +69,7 @@ Final steps include downstream analyses on imputed genotype data.
 - c) PRS calculation: Compute Polygenic Risk Scores (PRS) using public or custom scoring files.
 
 
-## 1 - Respository structure <a name = "rep_stru"></a>
+## ⚙️ 1 - Respository structure <a name = "rep_stru"></a>
 
 The table below summarizes the main files and directories in this repository, along with a brief description of their contents.
 |File  |Description            |
@@ -95,7 +95,7 @@ The table below provides a summary of the main tools used in this repository, al
 | LiftOver   | Coordinate conversion between builds.      |
 
 
-## 3 - Workflow <a name = "workflow"></a>
+## 🚀 3 - Workflow <a name = "workflow"></a>
 
 This repository is organized into modular steps that reflect a standard genotype data processing pipeline, from raw data to downstream analyses like PRS. Below is the step-by-step workflow:
 
@@ -103,7 +103,7 @@ This repository is organized into modular steps that reflect a standard genotype
 ![Workflow Overview](docs/Workflow.png)
 
 
-### 1_QC – Initial Quality Control.
+### 🔹 1_QC – Initial Quality Control.
 
 [scripts/1_Metagenomics_pipeline](scripts/1_Metagenomics_pipeline)
 
@@ -118,7 +118,7 @@ This repository is organized into modular steps that reflect a standard genotype
             g. Ancestry classification: Classify individuals into ancestry groups (European, Latino, Asian, African) based on principal components
 
 
-### 2_data_preparation/ - Data Preparation for Imputation
+### 🔹 2_data_preparation/ - Data Preparation for Imputation
 
 [scripts/2_statistical_analysis](scripts/2_statistical_analysis)
 
@@ -128,7 +128,7 @@ This repository is organized into modular steps that reflect a standard genotype
             d. VCF conversion: Convert final PLINK files to .vcf format.
             e. Compression and indexing: Create sorted and bgzipped .vcf.gz files with index for server upload.
 
-### 3_imputation/ – Imputation via TOPMed
+### 🔹 3_imputation/ – Imputation via TOPMed
 
             a. Prepare files for upload: Ensure data follows imputation server specifications.
             b. Upload & launch imputation: Submit data to the imputation server (e.g., TOPMed).
