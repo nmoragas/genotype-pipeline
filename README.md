@@ -15,21 +15,44 @@ Pipeline for genotype data processing: quality control, imputation preparation, 
 
 ## 0 - Overview <a name = "over"></a>
 
-This repository provides a generalized bioinformatics pipeline for processing,
-analyzing, and visualizing shotgun metagenomic data. The workflow includes
-standard preprocessing steps such as host (e.g., human) read removal, quality
-control, deduplication, trimming, and adapter removal.
+This repository contains scripts and resources for a complete pipeline to process genotyping data in PLINK format. 
+It includes quality control (QC) steps, imputation preparation, post-imputation filtering, and polygenic risk score (PRS) calculation.
 
-Downstream analyses cover taxonomic profiling with tools like Kraken2 and
-Bracken2, batch effect correction, and statistical evaluation of microbial
-community composition.
+### 1_QC/ – Genotype Quality Control
+This module performs an extensive quality control of raw genotype data using PLINK and R. 
+The steps ensure data integrity and remove problematic samples and variants before downstream analysis.
 
-The pipeline also supports compositional data analysis, alpha and beta diversity
-metrics, differential abundance testing using ANCOM-BC and LINDA, and functional
-microbiome profiling with HUMAnN3.
+- a) Missingness filtering: Remove SNPs with high missing call rates (e.g., >5%) and samples with excessive missing genotypes.
+- b) Heterozygosity check: Identify and remove samples with abnormal heterozygosity rates, which may indicate contamination or poor DNA quality.
+- c) Sex concordance: Check genetic vs. reported sex and exclude mismatched samples.
+- d) Relatedness check: Detect duplicates or related individuals using identity-by-descent (IBD, pi_hat > 0.8) and remove one from each pair.
+- e) Hardy-Weinberg Equilibrium filtering: Filter SNPs significantly deviating from HWE (typically in controls).
+- f) Population stratification: Perform PCA using Ancestry Informative Markers (AIMS) to detect population structure.
+- g) Ancestry classification: Classify individuals into ancestry groups (European, Latino, Asian, African) based on principal components
 
-While specific parameters and datasets may differ across projects, the overall
-structure follows best practices commonly adopted in microbiome research.
+### 2_data_preparation/ – Imputation Preparation
+This stage prepares the filtered genotype data for imputation.
+
+- a) SNP filtering and allele checks: Remove SNPs with strand issues or inconsistent annotations.
+- b) LiftOver (optional): Convert coordinates to match imputation server genome build if necessary (e.g., GRCh37 to GRCh38).
+- c) Wrayner checks: Run allele matching tools (e.g., Wellcome Trust tools) to generate a correction script (Run-plink.sh) aligning SNPs with the reference panel.
+- d) VCF conversion: Convert final PLINK files to .vcf format.
+- e) Compression and indexing: Create sorted and bgzipped .vcf.gz files with index for server upload.
+
+### 3_imputation/ – Imputation via TOPMed
+This step covers remote genotype imputation using the TOPMed Imputation Server.
+
+- a) Prepare files for upload: Ensure data follows imputation server specifications.
+- b) Upload & launch imputation: Submit data to the imputation server (e.g., TOPMed).
+- c) Download results: Retrieve imputed data once available.
+- d) Decompression: Unzip and organize imputed VCF files for analysis.
+
+### 4_analysis/ – Post-Imputation Analysis
+Final steps include downstream analyses on imputed genotype data.
+
+- a) Sample/SNP extraction: Select specific subsets of individuals or variants.
+- b) PCA for batch effects: Run PCA to detect technical artifacts or batch effects.
+- c) PRS calculation: Compute Polygenic Risk Scores (PRS) using public or custom scoring files.
 
 
 ## 1 - Respository structure <a name = "rep_stru"></a>
@@ -41,34 +64,41 @@ The table below summarizes the main files and directories in this repository, al
 |[docs/](docs/)|This folder includes PDF and PNG files that help illustrate the workflow, along with example tables and resulting plots.|
 
 ## 2 - Prerequisites <a name = "prere"></a>
-This workflow is currently designed to run in high-performance computing (HPC) environments using `SLURM` job scheduling with `Bash scripts` (#!/bin/bash).
-`RStudio` has been used for the statistical analysis components, complementing the pipeline with advanced microbiome data exploration and visualization.
-
-The initial preprocessing steps require substantial memory and storage resources. For example, each compressed paired-end sample (forward + reverse) may range from 1.5 to 3.5 GB.
-After deduplication and trimming, intermediate files can reach 3–8 GB per sample.
-
-To optimize storage usage, temporary files—such as the extracted human reads—can be optionally excluded from being saved.
+To successfully run the pipeline, ensure the following software and input formats are available:
+This workflow is currently designed to run in high-performance computing (HPC) environments using `SLURM` job scheduling with `Bash scripts` (#!/bin/bash) and `RStudio`.
 
 The table below provides a summary of the main tools used in this repository, along with a brief description of their purpose and functionality.
 | Tool       | Description                                                                                   |
 |:----------:|-----------------------------------------------------------------------------------------------|
-| R    | Used for downstream statistical analysis, visualization, batch effect correction (e.g., ConQuR), and compositional data transformations in R. |
-| Python     | Supports various preprocessing and formatting tasks; used for converting classification outputs (e.g., with `combine_mpa.py`, `kreport2mpa.py`) and preparing abundance tables. |
-| bowtie2    | Aligns raw reads to the human genome to identify and remove host contamination.      |
-| Samtools   | Extracts unaligned (non-human) reads from Bowtie2 output to generate cleaned FASTQ files.     |
-| FastQC     | Assesses the quality of raw and processed sequencing reads.                                   |
-| MultiQC    | Aggregates FastQC reports across samples into a single summary for easier interpretation.     |
-| Clumpify   | Removes duplicate reads from shotgun sequencing data to reduce redundancy and file size.      |
-| BBTools    | Suite containing Clumpify and BBDuk; used for deduplication, trimming, and quality filtering. |
-| BBDuk      | Trims low-quality bases (PHRED > 20) and removes adapter sequences from reads.                |
-| Kraken2    | Performs taxonomic classification of quality-controlled reads using k-mer-based matching.     |
-| Bracken2   | Refines Kraken2 taxonomic assignments to improve species-level abundance estimation.          |
+| R    | Statistical analysis and plotting. |
+| PLINK 1.9     | Genotype QC, filtering, and manipulation. |
+| VCFtools    | VCF file manipulation.      |
+| bcftools   | VCF file compression/indexing.     |
+| python     | General scripting.                                   |
+| perl    | Required for LiftOver scripts.     |
+| LiftOver   | Coordinate conversion between builds.      |
 
 
 ## 3 - Workflow <a name = "workflow"></a>
 
+This repository is organized into modular steps that reflect a standard genotype data processing pipeline, from raw data to downstream analyses like PRS. Below is the step-by-step workflow:
+
 > ⚠️ **Warning**: The workflow is divided into two main sections:  
-> **1. Metagenomics Pipeline** – Covers preprocessing steps from raw FASTQ files to taxonomic abundance tables.  
+> **1_QC** – Initial Quality Control.
+>             Input: Raw genotype data in PLINK format (.bed, .bim, .fam)
+>             Steps:
+                    - Filter SNPs with high missingness (>5%)
+                    - Remove samples with high missingness or heterozygosity outliers
+
+Check sex concordance
+
+Identify and remove duplicates or related individuals (pi_hat > 0.8)
+
+Filter by Hardy-Weinberg equilibrium (HWE)
+
+Perform PCA using AIMS to detect population outliers
+
+Classify ancestry (European, Latino, Asian, African)
 > **2. Statistical Analysis** – Includes diversity metrics, differential abundance testing, and predictive modeling.  
 >  
 > Below is a high-level overview of the steps involved in each section.  
