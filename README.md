@@ -4,7 +4,7 @@ Pipeline for genotype data processing: quality control, imputation preparation, 
 </p>
 
 ---
-## 🔹 Table of contents
+## Table of contents
 
 - [0 - Overview](#over) - Overview of the project's purpose and goals
 - [1 - Respository structure](#rep_stru) - Instructions on how to begin with this project
@@ -18,7 +18,7 @@ Pipeline for genotype data processing: quality control, imputation preparation, 
 This repository contains scripts and resources for a complete pipeline to process genotyping data in PLINK format. 
 It includes quality control (QC) steps, imputation preparation, post-imputation filtering, and polygenic risk score (PRS) calculation.
 
-### 1_QC/ – Genotype Quality Control
+### 🔹  1_QC/ – Genotype Quality Control
 This module conducts a comprehensive quality control of raw genotype data using PLINK and R, ensuring the reliability of the dataset prior to downstream analyses. 
 The process begins with the removal of SNPs that exhibit high missing call rates (commonly above 5%), as well as samples with excessive levels of missing genotype data.
 
@@ -33,7 +33,7 @@ Based on their principal component scores, individuals are then classified into 
 
 
 
-### 2_data_preparation/ – Imputation Preparation
+### 🔹  2_data_preparation/ – Imputation Preparation
 This stage focuses on preparing high-quality, filtered genotype data for imputation by ensuring compatibility with reference panels and imputation servers. 
 The process begins with a final round of SNP filtering to eliminate variants with strand ambiguities, mismatches in allele annotation, or other inconsistencies that could affect imputation accuracy.
 
@@ -47,7 +47,7 @@ Finally, the VCF files are sorted, compressed using bgzip, and indexed with tabi
 
 
 
-### 3_imputation/ – Imputation via TOPMed
+### 🔹  3_imputation/ – Imputation via TOPMed
 This step involves performing genotype imputation using the TOPMed Imputation Server, a widely used platform that infers missing genotypes based on a large, diverse reference panel. 
 The process enhances genomic coverage and is essential for downstream analyses like GWAS or polygenic risk scoring.
 
@@ -61,7 +61,7 @@ These files are then decompressed and organized for downstream analysis, such as
 
 
 
-### 4_analysis/ – Post-Imputation Analysis
+### 🔹  4_analysis/ – Post-Imputation Analysis
 Final steps include downstream analyses on imputed genotype data.
 
 - a) Sample/SNP extraction: Select specific subsets of individuals or variants.
