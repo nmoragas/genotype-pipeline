@@ -10,7 +10,7 @@ Pipeline for genotype data processing: quality control, imputation preparation, 
 - [1 - Respository structure](#rep_stru) - Instructions on how to begin with this project
 - [2 - Prerequisites](#prere) - Required software and installation steps 
 - [3 - Workflow](#workflow) - Detailed guide to each stage of the project
-- [4 - Authors](#authors) - Detailed guide to each stage of the project 
+- [4 - Authors](#authors) 
 
 
 ## 0 - Overview <a name = "over"></a>
