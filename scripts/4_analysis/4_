@@ -1,0 +1,34 @@
+---
+title: "4_transform_vcf_to_plink"
+output: html_document
+author: "NM - ODAP - IDIBELL"
+date: "`r Sys.Date()`"
+params:
+  dataDir:
+    label: "dataDir"
+    value: ""
+---
+
+
+
+
+
+```{r setup, include=FALSE}
+setwd("./")
+
+# to modify:
+vcf_file_name <- "_______" # name of merged data
+resDir<-"_______"
+
+```
+
+
+
+```{r}
+###########################################
+# TRANSFORM TO PLINK
+
+system(paste0("plink --vcf ",resDir, vcf_file_name,".vcf.gz --double-id --make-bed --out ",resDir,vcf_file_name))
+unlink(paste0(resDir,"*.log"))
+unlink(paste0(resDir,"*.nosex"))
+```
