@@ -7,9 +7,6 @@ params:
   dataDir:
     label: "dataDir"
     value: ""
-  plinkFile:
-    label: "plinkFile:"
-    value: ""
 ---
 
 
