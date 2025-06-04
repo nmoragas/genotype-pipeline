@@ -1,0 +1,43 @@
+---
+title: "MERGE vcf files"
+output: html_document
+author: "NM - ODAP - IDIBELL"
+date: "`r Sys.Date()`"
+params:
+  dataDir:
+    label: "dataDir"
+    value: ""
+  plinkFile:
+    label: "plinkFile:"
+    value: ""
+---
+
+
+
+
+```{r setup, include=FALSE}
+setwd("./")
+
+
+
+# to modify:
+vcf_file_name <- "_______" # name of merged data
+resDir<-"_______"
+
+dataDirs<-c("./project_1/","./project_2/","./project_3/") # dir data to merge
+
+
+chrom<-c(1:22,"X")
+for(i in 1:length(chrom)){
+
+  system(paste0("bcftools index ",dataDirs[1],"chr",chrom[i],".dose.vcf.gz"))
+  system(paste0("bcftools index ",dataDirs[2],"chr",chrom[i],".dose.vcf.gz"))
+  system(paste0("bcftools index ",dataDirs[3],"chr",chrom[i],".dose.vcf.gz"))
+  system(paste0("bcftools index ",dataDirs[4],"chr",chrom[i],".dose.vcf.gz"))
+
+  
+  system(paste0("bcftools merge -m all ",dataDirs[1],"chr",chrom[i],".dose.vcf.gz ",dataDirs[2],"chr",chrom[i],".dose.vcf.gz ",dataDirs[3],"chr",chrom[i],".dose.vcf.gz ",dataDirs[4],"chr",chrom[i],".dose.vcf.gz -Oz -o ",resDir,vcf_file_name,chrom[i],".vcf.gz"))
+
+  system(paste0("bcftools index ",resDir,vcf_file_name,chrom[i],".vcf.gz"))
+}
+```
