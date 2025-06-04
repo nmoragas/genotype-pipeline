@@ -1,0 +1,34 @@
+---
+title: "3_concatenate_chromosomes"
+output: html_document
+author: "NM - ODAP - IDIBELL"
+date: "`r Sys.Date()`"
+params:
+  dataDir:
+    label: "dataDir"
+    value: ""
+---
+
+
+```{r setup, include=FALSE}
+setwd("./")
+
+# to modify:
+vcf_file_name <- "_______" # name of vcf
+resDir<-"_______" # on son els chr.vcf.gz
+
+
+```
+
+```{r}
+# CONCATENATE CHROMOSOMES
+
+chromFile<-list.files(resDir,pattern= paste0(vcf_file_name,"*"))
+chromFile<-chromFile[-grep(".csi",chromFile)]
+write.table(paste0(resDir,chromFile),file=paste0(resDir,"chromFile.txt"),quote=FALSE,row.names = FALSE,col.names = FALSE)
+
+
+system(paste0("bcftools concat -f ",resDir,"chromFile.txt -Oz -o ",resDir, vcf_file_name,".vcf.gz"))
+
+```
+
