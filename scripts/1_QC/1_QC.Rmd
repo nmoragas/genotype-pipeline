@@ -1,0 +1,509 @@
+---
+title: "Imputation Pipeline: QUALITY CONTROL"
+output: html_document
+author: "NM - ODAP - ICO"
+date: "`r Sys.Date()`"
+params:
+  dataDir:
+    label: "dataDir"
+    value: ""
+  plinkFile:
+    label: "plinkFile:"
+    value: ""
+---
+
+
+# 0 data preparation
+
+```{r setup, include=FALSE}
+
+library(knitr)
+
+setwd("./1_QC")
+
+dataDir <- "./QC/"
+
+# Replace with the names of the files of interest:
+plinkFile <- "plink_raw_data_file_name"
+
+outputDir<-"./QC/"
+
+# read samples to mark them
+fam <- read.table(paste0(dataDir, plinkFile, ".fam") ,stringsAsFactors = FALSE, header = FALSE, sep = "")
+rownames(fam) <- fam[,2]
+
+```
+
+<br>
+
+Filter out SNPs that don't pass quality control.
+
+Mark or remove samples that don't pass quality control.
+
+<br>
+
+
+## b Requisites:
+
+* R 3.5.0
+* plink 1.9
+* AIMS_SNPs.txt file must be in the code folder
+* Data must be in plink format (bed + bim + fam)
+
+<br>  
+
+
+```{r, eval=TRUE, echo=FALSE, warning=FALSE, results='asis', error=FALSE}
+
+cat("\n")
+cat(paste0("Quality control for ",outputDir,plinkFile," data."))
+cat("\n")
+
+cat("\n")
+cat(paste0("There are ",nrow(fam)," samples in ",plinkFile," data."))
+cat("\n")
+
+bim <- read.table(paste0(outputDir, plinkFile,".bim") ,stringsAsFactors = FALSE, header = FALSE, sep = "")
+
+
+cat("\n")
+cat(paste0("There are ",nrow(bim)," SNPs in ",plinkFile," data."))
+cat("\n")
+
+```
+
+
+# a) Missing SNPs:
+
+Filter SNPs with 5% of missings
+
+```{r, eval=TRUE, echo=FALSE, warning=FALSE, results='asis', error=FALSE}
+
+# missing proportion
+system(paste0("plink --bfile ", dataDir, plinkFile, " --missing --out ", outputDir, "missings"))
+missings <- read.table(paste0(outputDir, "missings.lmiss"), header=TRUE)
+
+
+## SNPs to exclude 
+exclude_miss <- subset(missings, F_MISS > 0.05)
+write.table(exclude_miss[,2], file = paste0(outputDir, "snp_exclude_miss.txt"), col.names = FALSE, row.names = FALSE, quote = FALSE, sep = "\t")
+
+# filter SNPs with missings
+system(paste0("plink --bfile ", dataDir, plinkFile, " --exclude ", outputDir, "snp_exclude_miss.txt --make-bed --out ", outputDir, plinkFile, "_miss"))
+
+cat("\n")
+cat(paste0("There are ",nrow(exclude_miss)," SNPs with more than 5% of missings. The complete list of SNPs to remove will be saved in SNPsmissings.txt"))
+cat("\n")
+
+
+## print plot
+histplot <- hist(missings$F_MISS, breaks = 20, xlab = "proportion of missings", ylab = "num SNPs", main = plinkFile)
+abline(v = 0.05, col = "darkred", lwd = 2)
+axis(1, 0.05, 0.05, col.axis = "darkred", cex.axis = 0.5)
+arrows(0.05, max(histplot$counts)/2, 0.1, max(histplot$counts)/2, length = 0.05, col = "darkred", code = 2, lwd = 2)
+text(0.15, max(histplot$counts)/2, "removed SNPs", adj = 0, col = "darkred")
+box(lwd = 2)
+
+## save plot
+png(paste0(outputDir, "SNPmissings.png"), res = 200, 1500, 1500)
+histplot <- hist(missings$F_MISS, breaks = 20, xlab = "proportion of missings", ylab = "num SNPs", main = plinkFile)
+abline(v = 0.05, col = "darkred", lwd = 2)
+axis(1, 0.05, 0.05, col.axis = "darkred", cex.axis = 0.5)
+arrows(0.05, max(histplot$counts)/2, 0.1, max(histplot$counts)/2, length = 0.05, col = "darkred", code = 2, lwd = 2)
+text(0.15, max(histplot$counts)/2, "removed SNPs", adj = 0, col = "darkred")
+box(lwd = 2)
+dev.off()
+
+# save excluded SNPs
+write.table(exclude_miss, file = paste0(outputDir, "SNPsmissings.txt"), row.names = FALSE, quote = FALSE, sep = "\t")
+
+```
+
+<br>
+
+# b) Heterozigosity and Missing samples: 
+
+
+```{r, eval=TRUE, echo=FALSE, warning=FALSE, results='asis', error=FALSE}
+
+# Heterozygosity rate
+system(paste0("plink --bfile ", outputDir, plinkFile, "_miss --het --out ", outputDir, "heterozygotsity"))
+hetero <- read.table(paste0(outputDir, "heterozygotsity.het"), header = TRUE)
+hetero$het <- (hetero[,5] - hetero[,3]) / hetero[,5]
+
+# Cheking mean+-4sd
+meanup <- mean(hetero$het) + 4 * sd(hetero$het)
+meandown <- mean(hetero$het) - 4 * sd(hetero$het)
+
+
+
+# Missings - CALL RATE >90 (F_MISS >0.1)
+system(paste0("plink --bfile ", outputDir, plinkFile, "_miss --missing --out ", outputDir, "missings"))
+missInd <- read.table(paste0(outputDir, "missings.imiss"), header=TRUE)
+
+# plot
+
+plot(log(hetero$het),log(missInd$F_MISS),pch=20,main=paste0("HZ>",round(meanup,2)," (n=",sum(hetero$het>meanup),")\nHZ<",round(meandown,2)," (n=",sum(hetero$het<meandown),")"))
+abline(v=log(meanup),col="darkred")
+abline(v=log(meandown),col="darkred")
+abline(h=log(0.1),col="darkred")
+box(lwd = 2)
+
+png(paste0(outputDir, "HZvsMISS_4sd.png"), res = 200, width=1500, height=1500)
+plot(log(hetero$het),log(missInd$F_MISS),pch=20,main=paste0("HZ>",round(meanup,2)," (n=",sum(hetero$het>meanup),")\nHZ<",round(meandown,2)," (n=",sum(hetero$het<meandown),")"))
+abline(v=log(meanup),col="darkred")
+abline(v=log(meandown),col="darkred")
+abline(h=log(0.1),col="darkred")
+box(lwd = 2)
+dev.off()
+
+
+
+####################################################################################################
+```
+
+## b.1.- Missing samples
+
+```{r, eval=TRUE, echo=FALSE, warning=FALSE, results='asis', error=FALSE}
+# remove missing samples <90 CALL RATE
+
+cat("\n")
+cat(paste0("**b.1.- Missings:**"))
+cat("\n")
+
+## Samples to mark
+write.table(missInd, paste0(outputDir,"sample_callrate_table.txt" ))
+exclude_miss <- subset(missInd, F_MISS > 0.1)
+
+
+torm<-fam[fam$V2 %in% exclude_miss$IID,]
+
+cat("\n")
+cat(paste0("There are ",nrow(torm)," samples with more than 10% of missings."))
+cat("\n")
+
+
+## print plot
+histplot <- hist(missInd$F_MISS, breaks = 20, xlab = "proportion of missings", ylab = "num samples", main = plinkFile)
+abline(v = 0.05, col = "darkred", lwd = 2)
+axis(1, 0.05, 0.05, col.axis = "darkred", cex.axis = 0.5)
+arrows(0.05, max(histplot$counts)/2, 0.1, max(histplot$counts)/2, length = 0.05, col = "darkred", code = 2, lwd = 2)
+text(0.11, max(histplot$counts)/2, "removed samples", adj = 0, col = "darkred")
+box(lwd = 2)
+
+## save plot
+png(paste0(outputDir, "SAMPLEmissings.png"), res = 200, 1500, 1500)
+histplot <- hist(missInd$F_MISS, breaks = 20, xlab = "proportion of missings", ylab = "num samples", main = plinkFile)
+abline(v = 0.05, col = "darkred", lwd = 2)
+axis(1, 0.05, 0.05, col.axis = "darkred", cex.axis = 0.5)
+arrows(0.05, max(histplot$counts)/2, 0.1, max(histplot$counts)/2, length = 0.05, col = "darkred", code = 2, lwd = 2)
+text(0.15, max(histplot$counts)/2, "removed samples", adj = 0, col = "darkred")
+box(lwd = 2)
+dev.off()
+
+
+
+
+
+###############
+
+# mark samples
+fam$miss_samp <-"No"
+fam[torm$V2,"miss_samp"]<-"Low_CR_S"
+
+
+write.table(torm[,1:2], file = paste0(outputDir,"/rm_Missing_CR_90_samples.txt"), col.names = FALSE, row.names = FALSE, quote = FALSE, sep = "\t")
+
+system(paste0("plink --bfile ",outputDir, plinkFile,"_miss --remove ",outputDir,"/rm_Missing_CR_90_samples.txt --make-bed --out ",outputDir,plinkFile,"_miss_sample"))
+
+```
+
+## b.2.- Heterozigosity:
+
+```{r, eval=TRUE, echo=FALSE, warning=FALSE, results='asis', error=FALSE}
+
+####################################################################################################
+
+cat("\n")
+cat(paste0("**b.2.- Heterozigosity:**"))
+cat("\n")
+
+hzdown<-hetero[hetero$het<meandown,c(1,2,7)]
+
+cat("\n")
+cat(paste0("The lower heterozygosity threshold (mean-4sd) is ",round(meandown,2),". There are ",nrow(hzdown)," samples that are outside this threshold."))
+cat("\n")
+
+kable(hzdown,row.names=FALSE)
+
+hzup<-hetero[hetero$het>meanup,c(1,2,7)]
+
+cat("\n")
+cat(paste0("The upper heterozygosity threshold (mean+4sd) is ",round(meanup,2),". There are ",nrow(hzup)," samples that are outside this threshold."))
+cat("\n")
+
+kable(hzup,row.names=FALSE)
+
+cat("\n")
+cat(paste0("Only samples with high HZ will be removed."))
+cat("\n")
+
+
+# mark samples
+fam$ExcludeHeteroz <-"No"
+fam[hzdown$IID,"ExcludeHeteroz"]<-"LowHZ"
+fam[hzup$IID,"ExcludeHeteroz"]<-"HighHZ"
+
+table(fam$ExcludeHeteroz, fam$miss_samp)
+  #           Low_CR_S No
+  # HighHZ       17    0
+  # No           64    1146
+
+# tots els HighHZ presenten call rate <90. ja hena estat eliminats
+
+torm<-fam[fam$ExcludeHeteroz=="HighHZ",]
+write.table(torm[,1:2], file = paste0(outputDir,"/rm_HighHZ_samples.txt"), col.names = FALSE, row.names = FALSE, quote = FALSE, sep = "\t")
+
+system(paste0("plink --bfile ",outputDir, plinkFile,"_miss_sample --remove ",outputDir,"/rm_HighHZ_samples.txt --make-bed --out ",outputDir,plinkFile,"_HZ"))
+
+
+unlink(paste0(outputDir,"*.log"))
+unlink(paste0(outputDir,"*.hh"))
+unlink(paste0(outputDir,"*miss*"))
+
+```
+
+<br>
+
+# c) Sex concordance:
+
+Remove samples with no sex concordance
+
+```{r, eval=TRUE, echo=FALSE, warning=FALSE, results='asis', error=FALSE}
+
+# sex check
+system(paste0("plink --bfile ",outputDir,plinkFile,"_HZ --check-sex --out ",outputDir,"sexConc"))
+
+unlink(paste0(outputDir,"*.log"))
+unlink(paste0(outputDir,"*.hh"))
+
+sex<-read.table(paste0(outputDir,"sexConc.sexcheck"),sep="",stringsAsFactors = FALSE,header=TRUE)
+
+# filter in samples with no concordance
+sex <- sex[sex$STATUS!="OK" & sex$SNPSEX!=0 & sex$PEDSEX!=0,]
+
+# mark samples
+fam$ExcludeSex<-FALSE
+fam[as.character(sex[,2]),"ExcludeSex"]<-TRUE
+
+
+torm<-fam[fam$ExcludeSex,]
+write.table(torm[,1:2], file = paste0(outputDir,"/rm_Sex_samples.txt"), col.names = FALSE, row.names = FALSE, quote = FALSE, sep = "\t")
+
+system(paste0("plink --bfile ",outputDir, plinkFile,"_HZ --remove ",outputDir,"/rm_Sex_samples.txt --make-bed --out ",outputDir,plinkFile,"_QC"))
+
+
+cat("\n")
+cat(paste0("There are ",sum(fam$ExcludeSex)," samples with no sex concordance."))
+cat("\n")
+
+if(sum(fam$ExcludeSex)>0) print(kable(fam[fam$ExcludeSex,c(1,8)],row.names=FALSE))
+
+```
+
+<br>
+
+# d) Duplicates and relatedness (PLINK pi_hat > 0.8):
+
+Mark duplicated and related samples
+
+```{r, eval=TRUE, echo=FALSE, warning=FALSE, results='asis', error=FALSE}
+
+# check relatedness
+system(paste0("plink --bfile ", outputDir, plinkFile, "_QC --genome --out  ", outputDir, "duplicates"))
+dups <- read.table(paste0(outputDir, "duplicates.genome"), header = TRUE)
+
+# filter in related or duplicated individuals
+dups <- dups[dups$PI_HAT > 0.8,]
+
+# mark samples
+fam$ExcludeDups <- "No"
+if(nrow(dups)>0){
+  for(dp in 1:nrow(dups)){
+    fam[as.character(dups[dp,2]),"ExcludeDups"] <- as.character(dups[dp,4])
+    fam[as.character(dups[dp,4]),"ExcludeDups"] <- as.character(dups[dp,2])
+  }
+}
+
+cat("\n")
+cat(paste0("There are ",sum(fam$ExcludeDups!="No")," duplicated or related samples."))
+cat("\n")
+
+#print(kable(dups[,c(2,4,10)],row.names=FALSE))
+
+# remove some files
+unlink(paste0(outputDir,"*.log"))
+unlink(paste0(outputDir,"*.hh"))
+
+
+```
+
+<br>
+
+
+
+# e) Hardy-Weinberg equilibrium:
+
+```{r, eval=FALSE, echo=FALSE, warning=FALSE, results='asis', error=FALSE}
+
+# NOT EXECUTED!!! EVAL=FALSE!!!!
+
+### e) Hardy-Weinberg equilibrium:
+
+#Filter SNPs that have a HWE p-value < 1e-04
+
+# check HWE
+system(paste0("plink --bfile ", outputDir, plinkFile, "_QC --hardy --out ", outputDir, "hwe"))
+hwe <- read.table(paste0(outputDir, "hwe.hwe"), header = TRUE)
+hwe <- hwe[hwe$TEST=="UNAFF",] # only if there are cases/controls in the data
+
+## SNPs to exclude
+exclude_hwe <- subset(hwe, P<1e-04)
+
+cat("\n")
+cat(paste0("There are ",nrow(exclude_hwe)," snps that don't pass the HWE.  The complete list of SNPs to remove will be saved in SNPsHWE.txt"))
+cat("\n")
+
+# Remove SNPs
+write.table(exclude_hwe[,2],file = paste0(outputDir, "snp_exclude_hwe.txt"), quote = FALSE, col.names = FALSE, row.names = FALSE)
+system(paste0("plink --bfile ", outputDir, plinkFile, "_QC --exclude ", outputDir, "snp_exclude_hwe.txt --make-bed --out ", outputDir, plinkFile, "_QC"))
+
+
+# remove some files
+unlink(paste0(outputDir,"snp_exclude_hwe.txt"))
+unlink(paste0(outputDir,"*.hh"))
+unlink(paste0(outputDir,"*.log"))
+unlink(paste0(outputDir,"hwe.hwe"))
+unlink(paste0(outputDir, "*HZ*"))
+
+# save removed SNPs 
+write.table(exclude_hwe, file = paste0(outputDir, "rm_HWE_SNPs.txt"), row.names = FALSE, quote = FALSE, sep = "\t")
+
+
+
+```
+
+<br>
+
+```{r, eval=TRUE, echo=FALSE, warning=FALSE, results='asis', error=FALSE}
+
+bim <- read.table(paste0(outputDir, plinkFile, "_QC.bim") ,stringsAsFactors = FALSE, header = FALSE, sep = "")
+
+cat("\n")
+cat(paste0("Finally, ",nrow(bim)," SNPs remained for the analysis."))
+cat("\n")
+
+write.table(fam, file = paste0(outputDir, "marked_samples.txt"), sep = "\t", quote = FALSE, row.names = FALSE)
+
+```
+
+<br>
+
+
+# g) Genetic population statification:
+
+Mark samples outside the ancestry pupulation cluster of data using AIMS (Ancestry-informative marker SNPs) (abs(PC1) > 0.1 & abs(PC2) > 0.1). 
+
+```{r, eval=TRUE, echo=FALSE, warning=FALSE, results='asis', error=FALSE}
+
+system(paste0("plink --bfile ", outputDir, plinkFile, "_QC --extract ", dataDir, "AIMS_SNPs.txt --make-bed --out  ", outputDir, plinkFile, "_AIMS"))
+system(paste0("plink --bfile ", outputDir, plinkFile, "_AIMS --pca --out  ", outputDir, "pca"))
+
+pca <- read.table(paste0(outputDir, "pca.eigenvec"), header = FALSE)
+
+## print plot
+plot(pca[,3], pca[,4], pch = 20, xlab = "PCA 1", ylab = "PCA 2", main = plinkFile)
+
+# save plot
+png(paste0(outputDir, "Ancestry.png"), res = 200, 1500, 1500)
+plot(pca[,3], pca[,4], pch = 20, xlab = "PCA 1", ylab = "PCA 2", main = plinkFile)
+dev.off()
+
+
+##########################################
+
+# PCA in our study
+pca<- read.table(paste0(outputDir, "pca.eigenvec"), header = FALSE)
+
+pca$V1<-NULL
+colnames(pca)<-c("ID",paste0("PC",1:5))
+
+
+# european variable
+pca$European<-"European"
+pca$European[pca$PC2>(-0.005)]<-"Latino"
+pca$European[pca$PC2>0.03]<-"Asian"
+pca$European[pca$PC1<(-0.01)]<-"African"
+
+
+table(pca$European)
+# African European   Latino 
+#       24       17      171 
+
+covar<-pca
+
+
+
+
+png(paste0(outputDir, "Ancestry_colour.png"), res = 200, 1500, 1500)
+plot(covar$PC1, covar$PC2, main="",pch=20,cex=1.2,col="black",xlab="PCA 1", ylab="PCA 2",las=1,cex.lab=1.2,cex.axis=1.2)
+points(covar$PC1[covar$European=="Asian"], covar$PC2[covar$European=="Asian"],cex=1.2,pch=20,col="red")
+points(covar$PC1[covar$European=="African"], covar$PC2[covar$European=="African"],cex=1.2,pch=20,col="dodgerblue")
+points(covar$PC1[covar$European=="Latino"], covar$PC2[covar$European=="Latino"],cex=1.2,pch=20,col="green")
+legend("topleft",c("European","Asian","African","Latino"),col=c("black","red","dodgerblue","green"),pch=20,bty="n",cex=2)
+box(lwd=2)
+dev.off()
+
+
+#############################################################
+
+
+## Mark samples
+fam$ExcludePCA <- "No"
+
+write.table(fam, file = paste0(outputDir, "marked_samples.txt"), sep = "\t", quote = FALSE, row.names = FALSE)
+
+unlink(paste0(outputDir, plinkFile, "_AIMS.*"))
+unlink(paste0(outputDir, "pca.log"))
+unlink(paste0(outputDir, "pca.eigenval"))
+
+```
+
+
+
+#### Output files:
+
+The output files of the QC anlysis are:
+
+* Three 'good quality' SNPs and samples filtered in plink files (plinkFile_QC.bed; plinkFile_QC.bim and plinkFile_QC.fam)
+
+* Two plots of missigness (SNPmissings.png and SAMPLEmissings.png)
+
+* The list of SNPs with more than 5% of missings (SNPmissings.txt)
+
+* Heterozigosity file (heterozygotsity.het)
+
+* Heterozigosity vs Call rate plot (HZvsMISS_4sd.png)
+
+* Removed samples (rm_HighHZ_samples.txt, rm_Missing_samples.txt, rm_Sex_samples.txt)
+
+* Sex concordance file (sexConc.sexcheck)
+
+* Duplicates file (duplicates.genome)
+
+* A txt with the samples marked (marked_samples.txt). fam format with some extra columns.
+
+<br>  
+<br>  
+
+
