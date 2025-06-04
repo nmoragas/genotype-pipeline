@@ -1,4 +1,4 @@
-# 🧬 Genotyping Data Processing Pipeline
+# 🧬 Genotyping Data Utilities
 
 This repository contains a set of independent scripts and tools to manipulate, clean, and prepare genotyping data in VCF or PLINK formats. Each script performs a specific task and can be used separately depending on the needs of the project.
 
