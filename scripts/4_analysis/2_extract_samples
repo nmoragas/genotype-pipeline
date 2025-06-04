@@ -1,0 +1,43 @@
+---
+title: "2_sample_extraction"
+output: html_document
+author: "NM - ODAP - IDIBELL"
+date: "`r Sys.Date()`"
+params:
+  dataDir:
+    label: "dataDir"
+    value: ""
+---
+
+
+
+
+```{r setup, include=FALSE}
+setwd("./")
+
+# to modify:
+
+# samples2filt.txt <- txt file with ID samples to extract, in a column
+
+vcf_file_name <- "_______" # name of merged data. Ex. GenRisk_chr. no ___.vcf.gz
+resDir<-"_______"
+
+
+```
+
+```{r}
+
+# EXTARCT SAMPLES
+
+chrom<-c(1:22,"X")
+for(i in 1:length(chrom)){
+  
+  # filt samples
+  system(paste0("bcftools view -S ",resDir,"samples2filt.txt -Oz -o ",resDir, vcf_file_name ,chrom[i],"_filt.vcf.gz ",resDir, vcf_file_name ,chrom[i],".vcf.gz"))
+  unlink(paste0(resDir, vcf_file_name ,chrom[i],".vcf.gz"))
+     
+  # index
+  system(paste0("bcftools index ",resDir,vcf_file_name,chrom[i],".vcf.gz"))
+  }
+
+```
