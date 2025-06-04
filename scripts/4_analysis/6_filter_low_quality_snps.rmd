@@ -1,0 +1,67 @@
+---
+title: "6_filter_low_quality_snps"
+output: html_document
+author: "NM - ODAP - IDIBELL"
+date: "`r Sys.Date()`"
+params:
+  dataDir:
+    label: "dataDir"
+    value: ""
+---
+
+
+Script to filter imputed SNPs based on imputation quality (R² threshold).
+
+
+```{r setup, include=FALSE}
+setwd("./")
+# .info  The file containing SNP information from the TOPMed imputation
+
+# to modify:
+vcf_file_name <- "_______" # name of merged data
+resDir<-"_______"
+
+```
+
+```{r}
+# CREATE SNPS FILE WITH INFO (GENO/IMPUTED, R2 PER PROJECT, ...)
+bim<-read.table(paste0(resDir,vcf_file_name,".bim"))
+
+
+# remove duplicates
+dups<-bim$V2[duplicated(bim$V2)]
+
+
+bim<-bim[!bim$V2%in%dups,]
+# 48920548        6
+
+
+
+snps <- bim
+write.table(snps,file=paste0(resDir,vcf_file_name"_SNPs.info"),sep="\t",row.names=FALSE)
+
+```
+
+
+```{r}
+# Filter info r2 >0.3 - exemple
+
+#goodsnps<-snps[snps$MAF_CNIO>0.01 & snps$MAF_PRACTICAL>0.01 & snps$MAF_GASTRIC>0.01 & snps$MAF_CRCGEN>0.01 & snps$Rsq_CNIO>=0.3 & snps$Rsq_PRACTICAL>=0.3 & snps$Rsq_GASTRIC>=0.3 & snps$Rsq_CRCGEN>=0.3,]
+
+goodsnps<-snps[snps$Rsq>=0.3,]
+
+write.table(goodsnps[,1],file=paste0(resDir,"goodSNPs.txt"),row.names=FALSE,col.names=FALSE,quote=FALSE,sep="\t")
+
+system(paste0("bcftools view --include 'ID=@",resDir,"goodSNPs.txt' ",resDir, vcf_file_name,".vcf.gz -Oz -o ",resDir,vcf_file_name,"_info03.vcf.gz"))  
+system(paste0("bcftools index ",resDir,vcf_file_name,"_info03.vcf.gz"))
+
+
+# filt plink files
+system(paste0("plink --bfile ",resDir,vcf_file_name," --extract ",resDir,"goodSNPs.txt --make-bed --out ",resDir,vcf_file_name,"_info03"))
+unlink(paste0(resDir,"*.log"))
+unlink(paste0(resDir,"*.nosex"))
+
+
+#################################
+
+```
