@@ -137,5 +137,8 @@ This repository is organized into modular steps that reflect a standard genotype
 This pipeline was primarily developed and implemented by:
 
 Núria Moragas, PhD – [@nmoragas](https://github.com/nmoragas)
-Designed, developed, and documented the full metagenomics pipeline, including data preprocessing, taxonomic classification, functional profiling, and downstream analyses.
+Led the development, adaptation, and documentation of the pipeline, including downstream analyses.
+
+Anna Diez
+Contributed to the initial implementation of the imputation pipeline.
 
