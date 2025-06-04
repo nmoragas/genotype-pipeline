@@ -2,7 +2,7 @@
 
 This repository contains a set of independent scripts and tools to manipulate, clean, and prepare genotyping data in VCF or PLINK formats. Each script performs a specific task and can be used separately depending on the needs of the project.
 
-## 📁 Pipeline Overview
+## 📂 Contents
 
 1. **`1_merge_vcf_files.rmd`**  
    Merges VCF files from different cohorts or batches for each chromosome.
