@@ -9,7 +9,8 @@ params:
     value: ""
 ---
 
-
+You can either run the following code or execute the MergeImputation_TOPMed.sh script.
+Note: This is a time-consuming process.
 
 
 
