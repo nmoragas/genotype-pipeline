@@ -9,7 +9,7 @@ params:
     value: ""
 ---
 
-You can either run the following code or execute the MergeImputation_TOPMed.sh script.
+You can either run the following code or execute the 1_merge_vcf_files.sh script.
 Note: This is a time-consuming process.
 
 
