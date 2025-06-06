@@ -16,7 +16,7 @@ This repository contains a set of independent scripts and tools to manipulate, c
 4. **`4_transform_vcf_to_plink/`**  
    Converts the VCF files to PLINK format (`.bed/.bim/.fam`) using standard tools (e.g., `plink2` or `vcftools`), required for many GWAS and QC steps.
 
-5. **`6_filter_low_quality_snps.rmd`**  
+5. **`5_filter_low_quality_snps.rmd`**  
    Filters out SNPs with low imputation quality (e.g., based on R² or INFO score thresholds) to retain only high-confidence variants.
 
 > 🔢 **Note**: Step 5 is either intentionally skipped or handled elsewhere.
