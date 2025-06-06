@@ -37,11 +37,7 @@ Data must first be prepared in the required format (compressed and indexed VCFs)
 
 
 ### 🔹  4_analysis/ – Post-Imputation Analysis
-This final stage focuses on post-imputation analyses to extract meaningful insights from the genotype data.
-
-             - Sample and SNP extraction. Subset the imputed dataset by selecting specific individuals or variants of interest for targeted analyses.
-             - Principal Component Analysis (PCA). Perform PCA on the imputed data to identify potential batch effects, population substructure, or other technical artifacts.
-             - Polygenic Risk Score (PRS) calculation. Compute PRS using publicly available or custom scoring files, enabling genetic risk estimation for complex traits or diseases.
+This final stage focuses on post-imputation analyses to extract meaningful insights from the genotype data. Sample and SNP extraction. Subset the imputed dataset by selecting specific individuals or variants of interest for targeted analyses, etc
 
 ## ⚙️ 1 - Respository structure <a name = "rep_stru"></a>
 ---
@@ -125,9 +121,11 @@ This repository is organized into modular steps that reflect a standard genotype
 
 - `4_analysis`:
 
-            - a) Sample/SNP extraction: Select specific subsets of individuals or variants.
-            - b) PCA for batch effects: Run PCA to detect technical artifacts or batch effects.
-            - c) PRS calculation: Compute Polygenic Risk Scores (PRS) using public or custom scoring files.
+            a. *1_merge_vcf_files.rmd*. Merges VCF files from different cohorts or batches for each chromosome.
+            b. 2_extract_samples/. Extracts a subset of samples based on a predefined list. Can be used to select study-specific individuals or remove unwanted samples.
+            c. 3_concatenate_chromosomes/. Concatenates all chromosomes into a single genome-wide VCF file per individual or group, enabling downstream genome-wide analyses.
+            d. `4_transform_vcf_to_plink/`. Converts the VCF files to PLINK format (.bed/.bim/.fam) using standard tools (e.g., plink2 or vcftools), required for many GWAS and QC steps.
+            e. `5_filter_low_quality_snps.rmd`. Filters out SNPs with low imputation quality (e.g., based on R² or INFO score thresholds) to retain only high-confidence variants.
 
 
 
