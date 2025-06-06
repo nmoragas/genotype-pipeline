@@ -17,6 +17,14 @@ params:
     value: ""
 ---
 
+This script prepares genotype data for imputation using the TOPMed reference panel. It performs the following steps:
+
+a) Removes invalid SNPs
+b) Performs LiftOver from genome build GRCh37 (hg19) to GRCh38 (hg38)
+c) Checks and validates the BIM file
+d) Creates a sorted and compressed .vcf.gz file
+
+The LiftOver and BIM check steps require several external files. Instructions for downloading these required resources are included in the script.
 
 
 
@@ -29,6 +37,8 @@ library(knitr)
 setwd("./2_data_preparation")
 
 dataDir <-"./1_QC/QC/"
+
+# data result from /QC
 plinkFile <- "_______filtered_QC"
 
 #dir.create("./Data2Impute/",showWarnings=FALSE)
@@ -37,9 +47,11 @@ outputDir<-"./Data2Impute/"
 # Read bim
 bim <- read.table(paste0(dataDir, plinkFile, ".bim"), header = FALSE, stringsAsFactors = FALSE, sep = "\t")
 
-# genoma
+# original genoma
 assembly <- "hg19"
-refDir <- "./TOPMed/" #"/mnt/typhon/references/SNPs/TOPMed/"
+
+# bimchek reference panel (to download). 
+refDir <- "./TOPMed/"      #"/mnt/typhon/references/SNPs/TOPMed/"
 ```
 
 <br>
@@ -87,7 +99,7 @@ dir.create("./liftover/",showWarnings=FALSE)
 
 <https://www.well.ox.ac.uk/-wrayner/tools/> o <https://www.chg.ox.ac.uk/~wrayner/tools/>
 
-* bimcheck/HRC-1000G-check-bim.pl - ok v. v4.3.0 de:
+* bimcheck/HRC-1000G-check-bim.pl -v4.3.0 de:
 https://www.chg.ox.ac.uk/~wrayner/tools/
 * bimcheck/CreateTOPMed.pl
 * PASS.Variants.TOPMed_freeze5_hg38_dbSNP.tab in refDir
@@ -106,14 +118,14 @@ system("perl ./CreateTOPMed.pl -i ALL.TOPMed_freeze5_hg38_dbSNP.vcf.gz")
 dir.create("./bimcheck/",showWarnings=FALSE)
 
 # 1 download
-system("curl 'https://bravo.sph.umich.edu/freeze5/hg38/download/all' -H 'Accept-Encoding: gzip, deflate, br' -H --compressed > ALL.TOPMed_freeze5_hg38_dbSNP.vcf.gz") # pot no funionar per no fe rloging a google. Enganxar https://bravo.sph.umich.edu/freeze5/hg38/download/all i descarregar manualment
+system("curl 'https://bravo.sph.umich.edu/freeze5/hg38/download/all' -H 'Accept-Encoding: gzip, deflate, br' -H --compressed > ALL.TOPMed_freeze5_hg38_dbSNP.vcf.gz") # pot Manual Download Instructions:  https://bravo.sph.umich.edu/freeze5/hg38/download/all 
 
 https://bravo.sph.umich.edu/freeze10/hg38/download/all
 # 2.- Once downloaded the VCF can be converted to an HRC formatted reference legend using the code here: CreateTOPMed.zip
 # system("perl ./bimcheck/CreateTOPMed.pl -i ./bimcheck/ALL.TOPMed_freeze5_hg38_dbSNP.vcf.gz")
 
 # VCF conversion to HRC
- qsub vcf_conversion_to_HRC.qsub
+qsub vcf_conversion_to_HRC.qsub
 ```
 
 
@@ -225,7 +237,7 @@ https://www.well.ox.ac.uk/-wrayner/tools/
 This program produces a file called Run-plink.sh with different plink orders to match data to refrence
 
 
-Verue: https://genepi.github.io/michigan-imputationserver/prepare-your-data/
+See: https://genepi.github.io/michigan-imputationserver/prepare-your-data/
 
 
 ```{r, eval=TRUE, echo=FALSE, warning=FALSE, results='asis', error=FALSE}
@@ -279,24 +291,19 @@ cat("* Check bim file")
 cat("\n")
 
 # * refDir: directory with ALL.TOPMed_freeze5_hg38_dbSNP.vcf.gz file
-#refDir <- "/mnt/typhon/references/SNPs/TOPMed/"
 
-
-# Aquesta comanda canvia els permisos del fitxer HRC-1000G-check-bim.pl dins la carpeta bimcheck, donant-li permisos de lectura, escriptura i execució per a l'usuari i de lectura i execució per a grups i altres usuaris (755).:
+#File Permission Setup
+#The following command sets the appropriate permissions for the script HRC-1000G-check-bim.pl located in the bimcheck directory:
 system(paste0("chmod 755 bimcheck/HRC-1000G-check-bim.pl"))
 
-# verificar i corregir el fitxer .bim segons un conjunt de referència.
+# Verify and correct the .bim file using a reference panel.
 ## -r referencia
 ## -p EUR -> població EURopea
-## -c correció automatica
+## -c automatic correction
 system(paste0("perl bimcheck/HRC-1000G-check-bim.pl -b bimcheck/",plinkFile,".bim -f bimcheck/",plinkFile,".frq -r ", refDir, "/PASS.Variants.TOPMed_freeze5_hg38_dbSNP.tab.gz -h -o bimcheck/"))
 
 
 # This script will generate a file with the variants that need to be corrected or filtered.
-
-
-
-
 cat("\n")
 cat("* run Run.sh")
 cat("\n")
@@ -312,23 +319,38 @@ unlink("bimcheck/TEMP*")
 ## d) Crear vcf files
 
 ```{bash}
+# Create output directory if it doesn't exist
+mkdir -p Data2Impute
 
-# 4 Create vcf + modificar
 
+# 4 Create VCF Files with Correct Chromosome Naming
+
+# Although normally VCF files are generated from PLINK files using:
 #plink --bfile <prefix_bim_file> --recode vcf-iid --out <output-vcf>
 
-# no aplicat perque Run-plink.sh ja crea uns vcf.
+#his step is not necessary here because the script Run-plink.sh already generates VCFs. However, the chromosome names in those files are numeric (e.g., 1) and need to be #converted to the chr1 format to comply with reference genome conventions.
+
+#To automate this renaming using bcftools and avoid hardcoding file names, we define the PLINK file prefix as a variable and apply the conversion dynamically:
+```
+
+
+
+```{r}
 # els vcf tnene eles cromosomes anometats com ex. 1. hi ha de ser chr1. Modificar:
 
-# Aplicar a linux
-for i in {1..22}
-do
-bcftools annotate --rename-chrs <(awk '{print $1, "chr"$1}' bimcheck/VMoreno_1227m_GSA_filtered_QC-updated-chr${i}.vcf | grep -v "^#") bimcheck/VMoreno_1227m_GSA_filtered_QC-updated-chr${i}.vcf > Data2Impute/VMoreno_1227m_GSA_filtered_QC_chr${i}.vcf
+# Loop through chromosomes 1 to 22
+for i in {1..22}; do
+  bcftools annotate \
+    --rename-chrs <(awk '{print $1, "chr"$1}' bimcheck/${plinkFile}-updated-chr${i}.vcf | grep -v "^#") \
+    bimcheck/${plinkFile}-updated-chr${i}.vcf \
+    > Data2Impute/${plinkFile}_chr${i}.vcf
 done
-bcftools annotate --rename-chrs <(awk '{print $1, "chr"$1}' bimcheck/VMoreno_1227m_GSA_filtered_QC-updated-chr23.vcf | grep -v "^#") bimcheck/VMoreno_1227m_GSA_filtered_QC-updated-chr23.vcf > Data2Impute/VMoreno_1227m_GSA_filtered_QC_chr23.vcf
 
-
-bcftools annotate --rename-chrs <(echo -e "23\tchrX") bimcheck/VMoreno_1227m_GSA_filtered_QC-updated-chr23.vcf -o Data2Impute/VMoreno_1227m_GSA_filtered_QC_chrX.vcf
+# Rename chromosome 23 to chrX
+bcftools annotate \
+  --rename-chrs <(echo -e "23\tchrX") \
+  bimcheck/${plinkFile}-updated-chr23.vcf \
+  -o Data2Impute/${plinkFile}_chrX.vcf
 ```
 
 
@@ -338,21 +360,15 @@ bcftools annotate --rename-chrs <(echo -e "23\tchrX") bimcheck/VMoreno_1227m_GSA
 
 # * Create a sorted *.vcf.gz file 
 
-# Aplicat directament a linux:
- 
-## dels chr 1 al 22  
+# Sort and compress autosomal chromosomes (1–22)
 for i in {1..22}; do 
-# for i in {1..22} X; do
-bcftools sort Data2Impute/VMoreno_1227m_GSA_filtered_QC_chr${i}.vcf -Oz -o Data2Impute/VMoreno_1227m_GSA_filtered_QC_chr${i}.vcf.gz
+  bcftools sort ${outputDir}/${plinkFile}_chr${i}.vcf -Oz \
+    -o ${outputDir}/${plinkFile}_chr${i}.vcf.gz
 done
-  
 
-######################################################
-## chr X
-# awk 'BEGIN {print "##contig=<ID=chrX,length=155270560>"} /^#/ {print} !/^#/ {print}' Data2Impute/VMoreno_1227m_GSA_filtered_QC_chrX.vcf > Data2Impute/VMoreno_1227m_GSA_filtered_QC_chrX_fixed.vcf
-
-
-bcftools sort Data2Impute/VMoreno_1227m_GSA_filtered_QC_chrX.vcf -Oz -o Data2Impute/VMoreno_1227m_GSA_filtered_QC_chrX.vcf.gz
+# Sort and compress chromosome X
+bcftools sort ${outputDir}/${plinkFile}_chrX.vcf -Oz \
+  -o ${outputDir}/${plinkFile}_chrX.vcf.gz
 ```
 
 
