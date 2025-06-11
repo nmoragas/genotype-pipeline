@@ -1,0 +1,323 @@
+---
+title: "6_ethnicity"
+output: html_document
+author: "NM - ODAP - IDIBELL"
+date: "`r Sys.Date()`"
+params:
+  dataDir:
+    label: "dataDir"
+    value: ""
+  plinkFile:
+    label: "plinkFile:"
+    value: ""
+---
+
+```{r setup, include=FALSE}
+
+library(knitr)
+library(openxlsx)
+
+
+
+dataDir <-"./QC/"
+plinkFile <- "*_filtered_QC" # resulting from QC
+outputDir<-"./QC/"
+
+
+```
+
+
+## ETNIA - HAPMAP
+
+Use only your samples of interest and assign ethnicity labels based on their genomic positions, 
+leveraging the HapMap dataset as a reference panel. Note that without an overlaid reference (e.g. a heatmap of HapMap populations), 
+you won’t have a stable baseline for interpreting cluster boundaries.
+
+
+
+### 1 HapMap Data Preparation
+
+
+
+```{r}
+# 1. **Download files**  
+#https://www.broadinstitute.org/medical-and-population-genetics/hapmap-3
+
+
+# format .map / .ped
+
+## 2. Convert PED/MAP to PLINK binary format (BED/BIM/FAM)
+
+# YRI: Yoruba in Ibadan, Nigeria
+# ASW: African ancestry in Southwest USA
+# MEX: Mexican ancestry in Los Angeles, California
+# GIH: Gujarati Indians in Houston, Texas
+# CHB: Han Chinese in Beijing, China
+# CHD: Chinese in Metropolitan Denver, Colorado
+# TSI: Toscani in Italia
+# MKK: Maasai in Kinyawa, Kenya
+# LWK: Luhya in Webuye, Kenya
+# CEU: Utah residents with Northern and Western European ancestry from the CEPH collection
+# JPT: Japanese in Tokyo, Japan
+
+
+plink --file hapmap3_r1_b36_fwd.ASW.qc.poly.recode --make-bed --out ASW
+plink --file hapmap3_r1_b36_fwd.CEU.qc.poly.recode --make-bed --out CEU
+plink --file hapmap3_r1_b36_fwd.CHB.qc.poly.recode --make-bed --out CHB
+plink --file hapmap3_r1_b36_fwd.CHD.qc.poly.recode --make-bed --out CHD
+plink --file hapmap3_r1_b36_fwd.GIH.qc.poly.recode --make-bed --out GIH
+plink --file hapmap3_r1_b36_fwd.JPT.qc.poly.recode --make-bed --out JPT
+plink --file hapmap3_r1_b36_fwd.LWK.qc.poly.recode --make-bed --out LWK
+plink --file hapmap3_r1_b36_fwd.MEX.qc.poly.recode --make-bed --out MEX
+plink --file hapmap3_r1_b36_fwd.MKK.qc.poly.recode --make-bed --out MKK
+plink --file hapmap3_r1_b36_fwd.TSI.qc.poly.recode --make-bed --out TSI
+plink --file hapmap3_r1_b36_fwd.YRI.qc.poly.recode --make-bed --out YRI
+
+
+# 3 ethnic fusion
+plink --bfile ASW --merge-list merge-list.txt --make-bed --out hapmap_all
+
+
+```
+
+
+
+### 2 SNPs AIMS extraction
+
+```{r}
+
+# 1. Extract Ancestry-Informative Marker (AIM) SNPs
+system(paste0("plink --bfile hapmap_all --extract ./AIMS_SNPs.txt --make-bed --out  ./HAPMAP_AIMS"))
+
+# 2 Principal Component Analysis -- PCA 5 (otherwise it performs 20)
+#system(paste0("plink --bfile HAPMAP_AIMS --pca 5 --out  hapmap_pca")) # Resultat pca.eigenvec 
+
+
+
+
+# extracio AIMS dataset interes:
+## dataDir<-"./QC/"
+## plinkFile<-"*_filtered_QC" # dades en format plink resultats del QC pre imputació. 
+
+
+# DATASET to study:
+# 1 extracció de SNPs associats a etnia amb:
+system(paste0("plink --bfile ",dataDir, plinkFile," --extract ", dataDir,"AIMS_SNPs.txt --make-bed --out ", dataDir, plinkFile,"_AIMS"))
+
+```
+
+
+### 3 union hapmap + datset
+
+```{r}
+# flip hapmap to be as our data
+## load data from the dataset to study.
+bim <- read.table(paste0(dataDir,plinkFile,"_AIMS.bim"), sep="\t",stringsAsFactors=FALSE)
+
+  
+hapmap<-read.table("./HAPMAP_AIMS.bim",sep="\t",stringsAsFactors=FALSE)
+
+
+# function to flip
+convertToComplement<-function(x){
+  bases=c("A","C","G","T")
+  xx<-unlist(strsplit(toupper(x),NULL))
+  paste(unlist(lapply(xx,function(bbb){
+    if(bbb=="A") compString<-"T"
+    if(bbb=="C") compString<-"G"
+    if(bbb=="G") compString<-"C"
+    if(bbb=="T") compString<-"A"
+    if(!bbb %in% bases) compString<-"N"
+    return(compString)
+  })),collapse="")
+}
+
+
+# create an index so that bim is sorted like hapmap
+idx <- match(hapmap$V2, bim$V2)
+
+# Now bim[idx, ] has the same SNPs in the same order as hapmap
+bim2 <- bim[idx, ]
+
+aux <- which(
+  (hapmap$V5 != bim2$V5 & hapmap$V5 != bim2$V6) |
+  (hapmap$V6 != bim2$V5 & hapmap$V6 != bim2$V6)
+)
+
+
+# Flipa només les files indicades per 'aux'
+hapmap$V5[aux] <- sapply(hapmap$V5[aux], convertToComplement)
+hapmap$V6[aux] <- sapply(hapmap$V6[aux], convertToComplement)
+
+
+write.table(hapmap[,1:6],"./HAPMAP_AIMS.bim",sep="\t",row.names=FALSE,col.names=FALSE,quote=FALSE)
+
+```
+
+
+
+```{r}
+
+# merge plink files HAPMAP + dataseta  to study:
+system(paste0("plink --bfile ./HAPMAP_AIMS --bmerge ", dataDir,plinkFile,"_AIMS --make-bed --out ./mergeHAPMAP"))
+
+```
+
+
+
+### 3 PCA
+
+
+```{r}
+# calculate PCA for each of the datasets
+system(paste0("plink --bfile ./mergeHAPMAP --pca --out ./pcaAIMS_HAPMAP"))
+system(paste0("plink --bfile ", dataDir, plinkFile,"_AIMS --pca --out ", dataDir,"pcaAIMS"))
+```
+
+
+### 4 plot PCA
+
+
+```{r}
+
+# adding HAPMAP samples - download: https://www.broadinstitute.org/medical-and-population-genetics/hapmap-3
+samp<-read.table("./relationships_w_pops_051208.txt",header=TRUE,stringsAsFactors=FALSE)
+
+samp$POP2<-samp$population
+samp$POP2[samp$population=="TSI" | samp$population=="CEU"]<-"European"
+samp$POP2[samp$population=="CHB" | samp$population=="CHD" | samp$population=="JPT"]<-"Asian"
+samp$POP2[samp$population=="ASW" | samp$population=="MKK" | samp$population=="LWK" | samp$population=="YRI"]<-"African"
+samp$POP2[samp$population=="MEX" | samp$population=="GIH"]<-"Latino"
+
+
+# YRI: Yoruba in Ibadan, Nigeria
+# ASW: African ancestry in Southwest USA
+# MEX: Mexican ancestry in Los Angeles, California
+# GIH: Gujarati Indians in Houston, Texas
+# CHB: Han Chinese in Beijing, China
+# CHD: Chinese in Metropolitan Denver, Colorado
+# TSI: Toscani in Italia
+# MKK: Maasai in Kinyawa, Kenya
+# LWK: Luhya in Webuye, Kenya
+# CEU: Utah residents with Northern and Western European ancestry from the CEPH collection
+# JPT: Japanese in Tokyo, Japan
+
+pca<-read.table("./pcaAIMS_HAPMAP.eigenvec",header=FALSE)
+pca$V1<-NULL
+colnames(pca)<-c("ID",paste0("PC",1:20))
+
+pcaHAPMAP<-merge(samp,pca,by.x="IID",by.y="ID",all=FALSE)
+```
+```{r}
+fam1<-read.table( paste0(dataDir, plinkFile,"_AIMS.fam" ),sep=" ",stringsAsFactors=FALSE)
+fam2<-read.table("./mergeHAPMAP.fam",sep=" ",stringsAsFactors=FALSE)
+
+table(fam1$V2%in%fam2$V2)
+
+pcaRS<-pca[pca$ID%in%fam1$V2,]
+pcaRS<-pcaRS[!duplicated(pcaRS$ID),]
+
+
+# plot
+png("./1_QC/QC/PCAplot_CNIO_HAPMAP.png",res=300,2200,2200)
+plot(
+  pcaHAPMAP$PC1, pcaHAPMAP$PC2,
+  col = as.numeric(as.factor(pcaHAPMAP$POP2)) + 1,
+  pch = 20, xlab = "PCA 1", ylab = "PCA 2",
+  las = 1, cex.lab = 1.2, cex.axis = 1.2
+)
+legend(
+  "topleft",
+  c("Our samples", levels(as.factor(pcaHAPMAP$POP2))),
+  col = 1:(length(levels(as.factor(pcaHAPMAP$POP2))) + 1),
+  pch = 20, bty = "n", cex = 1.5
+)
+points(pcaRS$PC1, pcaRS$PC2, pch = 20)
+points(
+  pcaHAPMAP$PC1[pcaHAPMAP$POP2=="European"],
+  pcaHAPMAP$PC2[pcaHAPMAP$POP2=="European"],
+  col = 4, pch = 20
+)
+box(lwd = 2)
+dev.off()
+```
+
+
+
+
+```{r}
+# From this point, the ethnic breakdown of our population can be extracted separately
+
+# example: 
+# european variables
+pcaRS$European <- "European"
+pcaRS$European[pcaRS$PC2 > -0.005] <- "Latino"
+pcaRS$European[pcaRS$PC1 < -0.01 ] <- "African"
+pcaRS$European[pcaRS$PC2 > 0.04] <- "Asian"
+
+covar<-pcaRS
+
+png(paste0(outputDir, "Ancestry_colour.png"), res = 200, 1500, 1500)
+plot(covar$PC1, covar$PC2, main="",pch=20,cex=1.2,col="black",xlab="PCA 1", ylab="PCA 2",las=1,cex.lab=1.2,cex.axis=1.2)
+points(covar$PC1[covar$European=="Asian"], covar$PC2[covar$European=="Asian"],cex=1.2,pch=20,col="red")
+points(covar$PC1[covar$European=="African"], covar$PC2[covar$European=="African"],cex=1.2,pch=20,col="dodgerblue")
+points(covar$PC1[covar$European=="Latino"], covar$PC2[covar$European=="Latino"],cex=1.2,pch=20,col="green")
+legend("topleft",c("European","Asian","African","Latino"),col=c("black","red","dodgerblue","green"),pch=20,bty="n",cex=2)
+box(lwd=2)
+dev.off()
+
+```
+
+
+
+
+
+### INDIBIDUAL DATSET:
+
+example:
+
+```{r}
+
+dataDir<-"./QC/"
+plinkFile<-"*_filtered_QC" #data in plink format, pre-imputation QC results.
+
+# 1 extraction of SNPs associated with ethnicity with:
+system(paste0("plink --bfile ",dataDir, plinkFile," --extract ./AIMS_SNPs.txt --make-bed --out  ./*_AIMS"))
+
+# 2 principal component analysis --pca 5 (if not 20)
+system(paste0("plink --bfile ", outputDir, plinkFile, "_AIMS --pca 5 --out  ", outputDir, "pca")) # Resultat pca.eigenvec 
+
+
+# # Reading the result
+pca <- read.table(paste0(outputDir, "pca.eigenvec"), header = FALSE)
+
+
+pca<- read.table("/mnt/hydra/ubs/shared/projects/GENRISK/2024_genotypedData_CNIO/1_QC/QC/pca.eigenvec", header = FALSE)
+pca$V1<-NULL
+colnames(pca)<-c("ID",paste0("PC",1:20))
+
+
+# european variable - CNIO 2021
+pcaRS$European <- "European"
+pcaRS$European[pcaRS$PC2 > -0.005] <- "Latino"
+pcaRS$European[pcaRS$PC1 < -0.01 ] <- "African"
+pcaRS$European[pcaRS$PC2 > 0.04] <- "Asian"
+
+
+covar<-pca
+
+
+png(paste0(outputDir, "Ancestry_colour.png"), res = 200, 1500, 1500)
+plot(covar$PC1, covar$PC2, main="",pch=20,cex=1.2,col="black",xlab="PCA 1", ylab="PCA 2",las=1,cex.lab=1.2,cex.axis=1.2)
+points(covar$PC1[covar$European=="Asian"], covar$PC2[covar$European=="Asian"],cex=1.2,pch=20,col="red")
+points(covar$PC1[covar$European=="African"], covar$PC2[covar$European=="African"],cex=1.2,pch=20,col="dodgerblue")
+points(covar$PC1[covar$European=="Latino"], covar$PC2[covar$European=="Latino"],cex=1.2,pch=20,col="green")
+legend("topleft",c("European","Asian","African","Latino"),col=c("black","red","dodgerblue","green"),pch=20,bty="n",cex=2)
+box(lwd=2)
+dev.off()
+
+
+```
+
+
+
