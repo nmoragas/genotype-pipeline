@@ -1,7 +1,9 @@
 # 🧬 Imputation Workflow with TOPMed Server
 This section describes the steps to perform genotype imputation using the TOPMed Imputation Server.
 
+
 ## a) Upload VCF Files
+
 Upload the preprocessed VCF files (e.g., one per chromosome) to the TOPMed Imputation Server with the following configuration:
 
   - Imputation Tool: Minimac4
