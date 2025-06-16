@@ -17,7 +17,9 @@ params:
     value: ""
 ---
 
+
 This script prepares genotype data for imputation using the TOPMed reference panel. It performs the following steps:
+
 
 a) Removes invalid SNPs
 b) Performs LiftOver from genome build GRCh37 (hg19) to GRCh38 (hg38)
