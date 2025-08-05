@@ -4,7 +4,7 @@ Pipeline for genotype data processing: quality control, imputation preparation, 
 </p>
 
 ---
-    
+     
    
 ## Table of contents
 
