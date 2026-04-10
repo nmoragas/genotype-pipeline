@@ -7,7 +7,7 @@ Pipeline for genotype data processing: quality control, imputation preparation, 
        
        
 ## Table of contents             
- 
+  
 - [0 - Overview](#over) - Overview of the project's purpose and goals
 - [1 - Respository structure](#rep_stru) - Instructions on how to begin with this project
 - [2 - Prerequisites](#prere) - Required software and installation steps 
